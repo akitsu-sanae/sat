@@ -1,0 +1,23 @@
+
+PROGRAM = sat
+
+FILES[] =
+    sat
+
+USE_OCAMLFIND = true
+
+OCAMLPACKS[] =
+    extlib \
+	str
+
+OCamlProgram($(PROGRAM), $(FILES))
+
+.DEFAULT: $(PROGRAM).opt
+
+.PHONY: clean
+clean:
+	rm -f \
+		$(filter-proper-targets $(glob $(addsuffix .*, $(FILES)))) \
+		$(PROGRAM).opt
+
+
