@@ -3,8 +3,7 @@ module Truth = Set.Make (struct
     let compare = compare
 end)
 
-let ch = open_in "test.txt";;
-let lines = Std.input_list ch;;
+let lines = Std.input_list stdin;;
 
 let clauses = List.map
     (fun line ->
