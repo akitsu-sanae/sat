@@ -13,15 +13,14 @@ let rec read_n_variables () =
 
 let _ = read_n_variables ()
 
-let read_data () = begin
+let read_data () =
     let lines = Std.input_list stdin in
     let line_to_variables line =
-        let variable_strs = Str.split (Str.regexp "[ \t]") line in
+        let variable_strs = Str.split (Str.regexp "[ \t]+") line in
         let variables = List.rev_map int_of_string variable_strs in
         List.tl variables (* first element is 0 *)
     in
     List.rev_map line_to_variables lines
-end
 
 let clauses = read_data ()
 
@@ -33,18 +32,20 @@ let rec solve clauses truth =
         | [] ->
                 if Truth.cardinal new_truth = 0 then raise Unsat
                 else new_truth
-        | n :: clause -> begin
+        | n :: clause ->
             if Truth.mem n truth || Truth.mem (-n) new_truth then
-                Truth.empty (* none *)
+                Truth.empty
+            else if Truth.mem (-n) truth || Truth.mem n new_truth then
+                solve_impl clause truth new_truth
             else
-                let is_known = Truth.mem (-n) truth || Truth.mem n new_truth in
-                let new_truth = if is_known then new_truth else Truth.add n new_truth in
-                solve_impl clause truth new_truth end in
+                solve_impl clause truth @@ Truth.add n new_truth
+    in
     match clauses with
     | [] -> truth
     | clause :: clauses ->
             let new_truth = solve_impl clause truth Truth.empty in
-            solve clauses @@ Truth.union truth new_truth;;
+            solve clauses @@ Truth.union truth new_truth
+    ;;
 
 try
     let answer = solve clauses Truth.empty in
@@ -55,5 +56,4 @@ try
 with Unsat ->
     print_endline "s UNSATISFIABLE";
     exit 20
-;;
 
