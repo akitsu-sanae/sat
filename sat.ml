@@ -3,11 +3,6 @@ module Clause = Set.Make (struct
     let compare = compare
 end)
 
-module Clauses = Set.Make( struct
-    type t = Clause
-    let compare = compare
-end)
-
 let rec read_n_variables () =
     let line = read_line () in
     if line.[0] = 'p' then
