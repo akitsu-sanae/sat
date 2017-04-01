@@ -12,7 +12,11 @@ end)
 
 module Problem = Set.Make (struct
     type t = Clause.t
-    let compare = fun lhs rhs -> Clause.cardinal lhs - Clause.cardinal rhs
+    let compare = fun lhs rhs ->
+        if Clause.cardinal lhs = Clause.cardinal rhs then
+            compare lhs rhs
+        else
+            Clause.cardinal lhs - Clause.cardinal rhs
 end)
 
 let rec read_n_variables () =
@@ -45,8 +49,8 @@ let print_problem problem =
     Problem.iter print_clause problem
 
 let print_result result =
+    let result = List.sort (fun l r -> abs l - abs r) result in
     print_endline @@ List.fold_left (fun acc i -> acc ^ string_of_int i ^ " " ) "" result ^ "0"
-
 
 (* Clause  : Set of int    *)
 (* Problem : Set of Clause *)
@@ -59,26 +63,40 @@ let rec subst problem given =
     if Problem.for_all (not >> Clause.is_empty) problem then problem
     else raise Unsat
 
+let rec deduce (problem: Problem.t)  (deduced: int list) =
+    if Problem.is_empty problem then (deduced, problem)
+    else if Clause.cardinal @@ Problem.min_elt problem > 1 then
+        (deduced, problem)
+    else
+        let p = Clause.choose @@ Problem.min_elt problem in
+        let problem = subst problem p in
+        deduce problem (p :: deduced)
+
+let decide (problem: Problem.t)  (p: int) decided =
+    let problem = subst problem p in
+    deduce problem (p :: decided)
+
 let rec solve problem result =
-    let piv = Clause.choose @@ Problem.choose problem in
+    let p = Clause.min_elt @@ Problem.min_elt problem in
     try
-        let problem = subst problem piv in
-        if Problem.is_empty problem then piv::result
-        else solve problem (piv::result)
+        let (decided, problem) = decide problem p result in
+        if Problem.is_empty problem then decided
+        else solve problem decided
     with Unsat ->
-        let problem = subst problem (-piv) in
-        if Problem.is_empty problem then (-piv)::result
-        else solve problem ((-piv)::result)
+        let (decided, problem) = decide problem (-p) result in
+        if Problem.is_empty problem then decided
+        else solve problem decided
 
 let _ =
-    try
-        let result = solve problem [] in
-        print_problem problem;
-        print_endline "SAT";
-        print_result @@ List.sort (fun l r -> abs l - abs r) result
-    with Unsat ->
-        print_endline "UNSAT"
-
-
-
+    let (result, problem) = deduce problem [] in
+    if Problem.is_empty problem then
+        print_result result
+    else begin
+        try
+            let result = solve problem result in
+            print_endline "SAT";
+            print_result result
+        with Unsat ->
+            print_endline "UNSAT"
+    end
 
