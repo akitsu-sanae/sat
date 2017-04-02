@@ -49,19 +49,19 @@ let print_problem problem =
     Problem.iter print_clause problem
 
 let print_result result =
-    let result = List.sort (fun l r -> abs l - abs r) result in
+    let result = List.sort_uniq (fun l r -> abs l - abs r) result in
     print_endline @@ List.fold_left (fun acc i -> acc ^ string_of_int i ^ " " ) "" result ^ "0"
 
 (* Clause  : Set of int    *)
 (* Problem : Set of Clause *)
 
-exception Unsat
+exception Unsat of Clause.t
 
-let rec subst problem given =
+let rec subst problem given source =
     let problem = Problem.filter (fun clause -> not @@ Clause.mem given clause) problem in
     let problem = Problem.map (fun clause -> Clause.remove (-given) clause) problem in
     if Problem.for_all (not >> Clause.is_empty) problem then problem
-    else raise Unsat
+    else raise @@ Unsat (Clause.of_list @@ given :: source)
 
 let rec deduce (problem: Problem.t)  (deduced: int list) =
     if Problem.is_empty problem then (deduced, problem)
@@ -69,12 +69,12 @@ let rec deduce (problem: Problem.t)  (deduced: int list) =
         (deduced, problem)
     else
         let p = Clause.choose @@ Problem.min_elt problem in
-        let problem = subst problem p in
+        let problem = subst problem p deduced in
         deduce problem (p :: deduced)
 
-let decide (problem: Problem.t)  (p: int) decided =
-    let problem = subst problem p in
-    deduce problem (p :: decided)
+let decide problem p result =
+    let problem = subst problem p result in
+    deduce problem (p :: result)
 
 let rec solve problem result =
     let p = Clause.min_elt @@ Problem.min_elt problem in
@@ -82,7 +82,8 @@ let rec solve problem result =
         let (decided, problem) = decide problem p result in
         if Problem.is_empty problem then decided
         else solve problem decided
-    with Unsat ->
+    with Unsat clause ->
+        let problem = Problem.add clause problem in
         let (decided, problem) = decide problem (-p) result in
         if Problem.is_empty problem then decided
         else solve problem decided
@@ -96,6 +97,6 @@ let _ =
             let result = solve problem result in
             print_endline "SAT";
             print_result result
-    with Unsat ->
+    with Unsat _ ->
         print_endline "UNSAT"
 
