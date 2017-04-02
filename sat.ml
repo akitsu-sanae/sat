@@ -88,15 +88,14 @@ let rec solve problem result =
         else solve problem decided
 
 let _ =
-    let (result, problem) = deduce problem [] in
-    if Problem.is_empty problem then
-        print_result result
-    else begin
-        try
+    try
+        let (result, problem) = deduce problem [] in
+        if Problem.is_empty problem then
+            print_result result
+        else
             let result = solve problem result in
             print_endline "SAT";
             print_result result
-        with Unsat ->
-            print_endline "UNSAT"
-    end
+    with Unsat ->
+        print_endline "UNSAT"
 
